@@ -253,6 +253,7 @@ object FlowSuspiciousConnectsModel {
       config.ldaPRGSeed,
       config.ldaAlpha,
       config.ldaBeta,
+      config.ldaOptimizer,
       config.ldaMaxiterations)
 
     new FlowSuspiciousConnectsModel(topicCount,

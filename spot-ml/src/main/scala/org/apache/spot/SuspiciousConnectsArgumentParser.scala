@@ -36,7 +36,8 @@ object SuspiciousConnectsArgumentParser {
                                       ldaPRGSeed: Option[Long] = None,
                                       ldaMaxiterations: Int = 20,
                                       ldaAlpha: Double = 1.02,
-                                      ldaBeta: Double = 1.001)
+                                      ldaBeta: Double = 1.001,
+                                      ldaOptimizer: String = "em")
 
   val parser: scopt.OptionParser[SuspiciousConnectsConfig] = new scopt.OptionParser[SuspiciousConnectsConfig]("LDA") {
 
@@ -91,7 +92,6 @@ object SuspiciousConnectsArgumentParser {
       action((x, c) => c.copy(ldaMaxiterations = x)).
       text("maximum number of iterations used in LDA")
 
-
     opt[Double]("ldaalpha").optional().valueName("float64").
       action((x, c) => c.copy(ldaAlpha = x)).
       text("document concentration for lda, default 1.02")
@@ -99,5 +99,9 @@ object SuspiciousConnectsArgumentParser {
     opt[Double]("ldabeta").optional().valueName("float64").
       action((x, c) => c.copy(ldaBeta = x)).
       text("topic concentration for lda, default 1.001")
+
+    opt[String]("ldaoptimizer").optional().valueName("lda optimizer").
+      action((x, c) => c.copy(ldaOptimizer = x)).
+      text("LDA Optimizer: em for EM Optimizer or online Online Optimizer")
   }
 }

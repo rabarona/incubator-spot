@@ -283,6 +283,7 @@ object DNSSuspiciousConnectsModel {
       config.ldaPRGSeed,
       config.ldaAlpha,
       config.ldaBeta,
+      config.ldaOptimizer,
       config.ldaMaxiterations)
 
     // Since DNS is still broadcasting ip to topic mix, we need to convert data frame to Map[String, Array[Double]]

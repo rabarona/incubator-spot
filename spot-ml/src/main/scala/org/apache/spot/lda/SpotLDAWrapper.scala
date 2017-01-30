@@ -19,12 +19,11 @@ package org.apache.spot.lda
 
 import org.apache.log4j.Logger
 import org.apache.spark.SparkContext
-import org.apache.spark.mllib.clustering.{DistributedLDAModel, EMLDAOptimizer, LDA}
+import org.apache.spark.mllib.clustering.{DistributedLDAModel, EMLDAOptimizer, LDA, OnlineLDAOptimizer}
 import org.apache.spark.mllib.linalg.{Matrix, Vector, Vectors}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{DataFrame, Row, SQLContext}
-
 import SpotLDAWrapperSchema._
 
 import scala.collection.immutable.Map
@@ -53,6 +52,7 @@ object SpotLDAWrapper {
              ldaSeed: Option[Long],
              ldaAlpha: Double,
              ldaBeta: Double,
+             ldaOptimizer: String,
              maxIterations: Int): SpotLDAOutput = {
 
     import sqlContext.implicits._
@@ -88,7 +88,12 @@ object SpotLDAWrapper {
     docWordCountCache.unpersist()
 
     //Instantiate optimizer based on input
-    val optimizer = new EMLDAOptimizer
+    val optimizer = ldaOptimizer match {
+      case "em" => new EMLDAOptimizer
+      case "online" => new OnlineLDAOptimizer
+      case _ => throw new IllegalArgumentException(
+        s"Invalid LDA optimizer $ldaOptimizer")
+    }
 
     logger.info(s"Running Spark LDA with params alpha = $ldaAlpha beta = $ldaBeta " +
       s"Max iterations = $maxIterations Optimizer = em")
@@ -108,10 +113,10 @@ object SpotLDAWrapper {
       lda.setSeed(ldaSeed.get)
     }
 
-
     //Create LDA model
     val ldaModel = lda.run(ldaCorpus)
 
+    // TODO: cast lda model according to optimizer. Right now it just works for EM (DistributedLDAModel).
     //Convert to DistributedLDAModel to expose info about topic distribution
     val distLDAModel = ldaModel.asInstanceOf[DistributedLDAModel]
 
