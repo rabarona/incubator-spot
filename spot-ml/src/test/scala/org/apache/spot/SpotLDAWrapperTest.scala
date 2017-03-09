@@ -32,13 +32,13 @@ import scala.collection.immutable.Map
 
 class SpotLDAWrapperTest extends TestingSparkContextFlatSpec with Matchers {
 
-    val ldaAlpha = 1.02
-    val ldaBeta = 1.001
-    val ldaMaxiterations = 100
-
     "SparkLDA" should "handle an extremely unbalanced two word doc with EM optimizer" in {
       val logger = LogManager.getLogger("SuspiciousConnectsAnalysis")
       logger.setLevel(Level.WARN)
+
+      val ldaAlpha =  1.02
+      val ldaBeta = 1.001
+      val ldaMaxiterations = 20
 
       val optimizer = "em"
 
@@ -51,13 +51,11 @@ class SpotLDAWrapperTest extends TestingSparkContextFlatSpec with Matchers {
 
       val topicMixDF = out.docToTopicMix
 
-      var topicMix =
+      val topicMix =
         topicMixDF.filter(topicMixDF(DocumentName) === "pets").select(TopicProbabilityMix).first().toSeq(0)
           .asInstanceOf[Seq[Double]].toArray
       val catTopics = out.wordResults("cat")
       val dogTopics = out.wordResults("dog")
-
-      println("Cat " + topicMix(0) + " * " + catTopics(0) + " + " + topicMix(1) + "*" + catTopics(1))
 
       Math.abs(topicMix(0) * catTopics(0) + topicMix(1) * catTopics(1)) should be < 0.01
       Math.abs(0.999 - (topicMix(0) * dogTopics(0) + topicMix(1) * dogTopics(1))) should be < 0.01
@@ -66,6 +64,10 @@ class SpotLDAWrapperTest extends TestingSparkContextFlatSpec with Matchers {
     "SparkLDA" should "handle distinct docs on distinct words with EM optimizer" in {
       val logger = LogManager.getLogger("SuspiciousConnectsAnalysis")
       logger.setLevel(Level.WARN)
+
+      val ldaAlpha =  1.2
+      val ldaBeta = 1.001
+      val ldaMaxiterations = 20
 
       val optimizer = "em"
 
@@ -88,65 +90,70 @@ class SpotLDAWrapperTest extends TestingSparkContextFlatSpec with Matchers {
       val catTopics = out.wordResults("cat")
       val dogTopics = out.wordResults("dog")
 
-      println("Cat " + catTopicMix(0) + " * " + catTopics(0) + " + " + catTopicMix(1) + "*" + catTopics(1))
-
       Math.abs(1 - (catTopicMix(0) * catTopics(0) + catTopicMix(1) * catTopics(1))) should be < 0.01
       Math.abs(1 - (dogTopicMix(0) * dogTopics(0) + dogTopicMix(1) * dogTopics(1))) should be < 0.01
     }
 
-//  "SparkLDA" should "handle an extremely unbalanced two word doc with Online optimizer" in {
-//    val logger = LogManager.getLogger("SuspiciousConnectsAnalysis")
-//    logger.setLevel(Level.WARN)
-//
-//    val optimizer = "online"
-//
-//    val catFancy = SpotLDAInput("pets", "cat", 1)
-//    val dogWorld = SpotLDAInput("pets", "dog", 999)
-//
-//    val data = sparkContext.parallelize(Seq(catFancy, dogWorld))
-//    val out = SpotLDAWrapper.runLDA(sparkContext, sqlContext, data, 2, logger, Some(0xdeadbeef), ldaAlpha, ldaBeta,
-//      optimizer, ldaMaxiterations)
-//
-//    val topicMixDF = out.docToTopicMix
-//
-//    var topicMix =
-//      topicMixDF.filter(topicMixDF(DocumentName) === "pets").select(TopicProbabilityMix).first().toSeq(0)
-//        .asInstanceOf[Seq[Double]].toArray
-//    val catTopics = out.wordResults("cat")
-//    val dogTopics = out.wordResults("dog")
-//
-//    Math.abs(topicMix(0) * catTopics(0) + topicMix(1) * catTopics(1)) should be < 0.01
-//    Math.abs(0.999 - (topicMix(0) * dogTopics(0) + topicMix(1) * dogTopics(1))) should be < 0.01
-//  }
-//
-//  "SparkLDA" should "handle distinct docs on distinct words with Online optimizer" in {
-//    val logger = LogManager.getLogger("SuspiciousConnectsAnalysis")
-//    logger.setLevel(Level.WARN)
-//
-//    val optimizer = "online"
-//
-//    val catFancy = SpotLDAInput("cat fancy", "cat", 1)
-//    val dogWorld = SpotLDAInput("dog world", "dog", 1)
-//
-//    val data = sparkContext.parallelize(Seq(catFancy, dogWorld))
-//    val out = SpotLDAWrapper.runLDA(sparkContext, sqlContext, data, 2, logger, Some(0xdeadbeef), ldaAlpha, ldaBeta,
-//      optimizer, ldaMaxiterations)
-//
-//    val topicMixDF = out.docToTopicMix
-//    var dogTopicMix: Array[Double] =
-//      topicMixDF.filter(topicMixDF(DocumentName) === "dog world").select(TopicProbabilityMix).first()
-//        .toSeq(0).asInstanceOf[Seq[Double]].toArray
-//
-//    val catTopicMix: Array[Double] =
-//      topicMixDF.filter(topicMixDF(DocumentName) === "cat fancy").select(TopicProbabilityMix).first()
-//        .toSeq(0).asInstanceOf[Seq[Double]].toArray
-//
-//    val catTopics = out.wordResults("cat")
-//    val dogTopics = out.wordResults("dog")
-//
-//    Math.abs(1 - (catTopicMix(0) * catTopics(0) + catTopicMix(1) * catTopics(1))) should be < 0.01
-//    Math.abs(1 - (dogTopicMix(0) * dogTopics(0) + dogTopicMix(1) * dogTopics(1))) should be < 0.01
-//  }
+  "SparkLDA" should "handle an extremely unbalanced two word doc with Online optimizer" in {
+    val logger = LogManager.getLogger("SuspiciousConnectsAnalysis")
+    logger.setLevel(Level.WARN)
+
+    val ldaAlpha =  0.0009
+    val ldaBeta = 0.00001
+    val ldaMaxiterations = 400
+
+    val optimizer = "online"
+
+    val catFancy = SpotLDAInput("pets", "cat", 1)
+    val dogWorld = SpotLDAInput("pets", "dog", 999)
+
+    val data = sparkContext.parallelize(Seq(catFancy, dogWorld))
+    val out = SpotLDAWrapper.runLDA(sparkContext, sqlContext, data, 2, logger, Some(0xdeadbeef), ldaAlpha, ldaBeta,
+      optimizer, ldaMaxiterations)
+
+    val topicMixDF = out.docToTopicMix
+
+    var topicMix =
+      topicMixDF.filter(topicMixDF(DocumentName) === "pets").select(TopicProbabilityMix).first().toSeq(0)
+        .asInstanceOf[Seq[Double]].toArray
+    val catTopics = out.wordResults("cat")
+    val dogTopics = out.wordResults("dog")
+
+    Math.abs(topicMix(0) * catTopics(0) + topicMix(1) * catTopics(1)) should be < 0.01
+    Math.abs(0.999 - (topicMix(0) * dogTopics(0) + topicMix(1) * dogTopics(1))) should be < 0.01
+  }
+
+  "SparkLDA" should "handle distinct docs on distinct words with Online optimizer" in {
+    val logger = LogManager.getLogger("SuspiciousConnectsAnalysis")
+    logger.setLevel(Level.WARN)
+
+    val ldaAlpha =  0.0009
+    val ldaBeta = 0.00001
+    val ldaMaxiterations = 400
+    val optimizer = "online"
+
+    val catFancy = SpotLDAInput("cat fancy", "cat", 1)
+    val dogWorld = SpotLDAInput("dog world", "dog", 1)
+
+    val data = sparkContext.parallelize(Seq(catFancy, dogWorld))
+    val out = SpotLDAWrapper.runLDA(sparkContext, sqlContext, data, 2, logger, Some(0xdeadbeef), ldaAlpha, ldaBeta,
+      optimizer, ldaMaxiterations)
+
+    val topicMixDF = out.docToTopicMix
+    var dogTopicMix: Array[Double] =
+      topicMixDF.filter(topicMixDF(DocumentName) === "dog world").select(TopicProbabilityMix).first()
+        .toSeq(0).asInstanceOf[Seq[Double]].toArray
+
+    val catTopicMix: Array[Double] =
+      topicMixDF.filter(topicMixDF(DocumentName) === "cat fancy").select(TopicProbabilityMix).first()
+        .toSeq(0).asInstanceOf[Seq[Double]].toArray
+
+    val catTopics = out.wordResults("cat")
+    val dogTopics = out.wordResults("dog")
+
+    Math.abs(1 - (catTopicMix(0) * catTopics(0) + catTopicMix(1) * catTopics(1))) should be < 0.01
+    Math.abs(1 - (dogTopicMix(0) * dogTopics(0) + dogTopicMix(1) * dogTopics(1))) should be < 0.01
+  }
 
     "formatSparkLDAInput" should "return input in RDD[(Long, Vector)] (collected as Array for testing) format. The index " +
       "is the docID, values are the vectors of word occurrences in that doc" in {

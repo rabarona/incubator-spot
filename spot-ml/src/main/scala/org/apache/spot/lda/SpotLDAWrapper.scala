@@ -85,12 +85,17 @@ object SpotLDAWrapper {
         wordDictionary,
         sqlContext)
 
+    val corpusSize = ldaCorpus.count()
+
     docWordCountCache.unpersist()
 
     //Instantiate optimizer based on input
     val optimizer = ldaOptimizer match {
       case "em" => new EMLDAOptimizer
-      case "online" => new OnlineLDAOptimizer
+      case "online" => new OnlineLDAOptimizer().setOptimizeDocConcentration(true).setMiniBatchFraction({
+        if (corpusSize < 2) 0.75
+        else (0.05 + 1) / corpusSize
+      })
       case _ => throw new IllegalArgumentException(
         s"Invalid LDA optimizer $ldaOptimizer")
     }
@@ -113,24 +118,36 @@ object SpotLDAWrapper {
       lda.setSeed(ldaSeed.get)
     }
 
-    //val ldaModel = lda.run(ldaCorpus)
-    //Create LDA model
-    val ldaModel: LocalLDAModel = ldaOptimizer match {
-      case "em" => lda.run(ldaCorpus).asInstanceOf[DistributedLDAModel].toLocal
-      case "online" => lda.run(ldaCorpus).asInstanceOf[LocalLDAModel]
+    val (wordTopicMat, docTopicDist) = ldaOptimizer match {
+      case "em" => {
+         val ldaModel = lda.run(ldaCorpus).asInstanceOf[DistributedLDAModel]//.toLocal
+
+        //Get word topic mix: columns = topic (in no guaranteed order), rows = words (# rows = vocab size)
+        val wordTopicMat: Matrix = ldaModel.topicsMatrix
+
+        //Topic distribution: for each document, return distribution (vector) over topics for that docs
+        val docTopicDist: RDD[(Long, Vector)] = ldaModel.topicDistributions
+
+        (wordTopicMat, docTopicDist)
+
+      }
+
+      case "online" => {
+        val ldaModel = lda.run(ldaCorpus).asInstanceOf[LocalLDAModel]
+
+        //Get word topic mix: columns = topic (in no guaranteed order), rows = words (# rows = vocab size)
+        val wordTopicMat: Matrix = ldaModel.topicsMatrix
+
+        //Topic distribution: for each document, return distribution (vector) over topics for that docs
+        val docTopicDist: RDD[(Long, Vector)] = ldaModel.topicDistributions(ldaCorpus)
+
+        (wordTopicMat, docTopicDist)
+
+      }
+
       case _ => throw new IllegalArgumentException(
         s"Invalid LDA optimizer $ldaOptimizer")
     }
-
-    // TODO: cast lda model according to optimizer. Right now it just works for EM (DistributedLDAModel).
-    //Convert to DistributedLDAModel to expose info about topic distribution
-    //val distLDAModel = ldaModel.asInstanceOf[DistributedLDAModel]
-
-    //Get word topic mix: columns = topic (in no guaranteed order), rows = words (# rows = vocab size)
-    val wordTopicMat: Matrix = ldaModel.topicsMatrix
-
-    //Topic distribution: for each document, return distribution (vector) over topics for that docs
-    val docTopicDist: RDD[(Long, Vector)] = ldaModel.topicDistributions(ldaCorpus)
 
     //Create doc results from vector: convert docID back to string, convert vector of probabilities to array
     val docToTopicMixDF =
