@@ -37,6 +37,22 @@ import org.apache.spot.utilities.data.validation.{InvalidDataHandler => dataVali
 object DNSSuspiciousConnectsAnalysis {
 
 
+  val DefaultQueryClass = "unknown"
+  val DefaultQueryType = -1
+  val DefaultQueryResponseCode = -1
+  val InStructType = StructType(List(TimestampField, UnixTimestampField, FrameLengthField, ClientIPField,
+    QueryNameField, QueryClassField, QueryTypeField, QueryResponseCodeField))
+  val InSchema = InStructType.fieldNames.map(col)
+  val OutSchema = StructType(
+    List(TimestampField,
+      UnixTimestampField,
+      FrameLengthField,
+      ClientIPField,
+      QueryNameField,
+      QueryClassField,
+      QueryTypeField,
+      QueryResponseCodeField,
+      ScoreField)).fieldNames.map(col)
 
   /**
     * Run suspicious connections analysis on DNS log data.
@@ -77,7 +93,6 @@ object DNSSuspiciousConnectsAnalysis {
     dataValidation.showAndSaveCorruptRecords(corruptDNSRecords, config.hdfsScoredConnect, logger)
   }
 
-
   /**
     * Identify anomalous DNS log entries in in the provided data frame.
     *
@@ -99,9 +114,8 @@ object DNSSuspiciousConnectsAnalysis {
       DNSSuspiciousConnectsModel.trainNewModel(sparkContext, sqlContext, logger, config, data, config.topicCount)
 
     logger.info("Identifying outliers")
-    model.score(sparkContext, sqlContext, data, config.userDomain)
+    model.score(sparkContext, sqlContext, data, config.userDomain, config.probabilityConversionOption)
   }
-
 
   /**
     *
@@ -136,7 +150,6 @@ object DNSSuspiciousConnectsAnalysis {
       .na.fill(DefaultQueryResponseCode, Seq(QueryResponseCode))
   }
 
-
   /**
     *
     * @param inputDNSRecords raw DNS records.
@@ -167,7 +180,6 @@ object DNSSuspiciousConnectsAnalysis {
       .select(InSchema: _*)
   }
 
-
   /**
     *
     * @param scoredDNSRecords scored DNS records.
@@ -183,6 +195,8 @@ object DNSSuspiciousConnectsAnalysis {
     scoredDNSRecords.filter(filteredDNSRecordsFilter)
   }
 
+  assert(ModelSchema.fields.forall(InStructType.fields.contains(_)))
+
   /**
     *
     * @param scoredDNSRecords scored DNS records.
@@ -197,28 +211,5 @@ object DNSSuspiciousConnectsAnalysis {
       .select(OutSchema: _*)
 
   }
-
-
-  val DefaultQueryClass = "unknown"
-  val DefaultQueryType = -1
-  val DefaultQueryResponseCode = -1
-
-  val InStructType = StructType(List(TimestampField, UnixTimestampField, FrameLengthField, ClientIPField,
-    QueryNameField, QueryClassField, QueryTypeField, QueryResponseCodeField))
-
-  val InSchema = InStructType.fieldNames.map(col)
-
-  assert(ModelSchema.fields.forall(InStructType.fields.contains(_)))
-
-  val OutSchema = StructType(
-    List(TimestampField,
-      UnixTimestampField,
-      FrameLengthField,
-      ClientIPField,
-      QueryNameField,
-      QueryClassField,
-      QueryTypeField,
-      QueryResponseCodeField,
-      ScoreField)).fieldNames.map(col)
 
 }

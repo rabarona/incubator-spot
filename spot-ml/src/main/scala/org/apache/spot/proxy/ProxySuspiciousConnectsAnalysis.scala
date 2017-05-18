@@ -31,6 +31,51 @@ import org.apache.spot.utilities.data.validation.{InvalidDataHandler => dataVali
   */
 object ProxySuspiciousConnectsAnalysis {
 
+  val DefaultUserAgent = "-"
+  val DefaultResponseContentType = "-"
+  val InSchema = StructType(
+    List(DateField,
+      TimeField,
+      ClientIPField,
+      HostField,
+      ReqMethodField,
+      UserAgentField,
+      ResponseContentTypeField,
+      DurationField,
+      UserNameField,
+      WebCatField,
+      RefererField,
+      RespCodeField,
+      URIPortField,
+      URIPathField,
+      URIQueryField,
+      ServerIPField,
+      SCBytesField,
+      CSBytesField,
+      FullURIField)).fieldNames.map(col)
+  val OutSchema = StructType(
+    List(DateField,
+      TimeField,
+      ClientIPField,
+      HostField,
+      ReqMethodField,
+      UserAgentField,
+      ResponseContentTypeField,
+      DurationField,
+      UserNameField,
+      WebCatField,
+      RefererField,
+      RespCodeField,
+      URIPortField,
+      URIPathField,
+      URIQueryField,
+      ServerIPField,
+      SCBytesField,
+      CSBytesField,
+      FullURIField,
+      WordField,
+      ScoreField)).fieldNames.map(col)
+
   /**
     * Run suspicious connections analysis on proxy data.
     *
@@ -91,7 +136,7 @@ object ProxySuspiciousConnectsAnalysis {
     val model = ProxySuspiciousConnectsModel.trainNewModel(sparkContext, sqlContext, logger, config, data)
     logger.info("Identifying outliers")
 
-    model.score(sparkContext, data)
+    model.score(sparkContext, data, config.probabilityConversionOption)
   }
 
   /**
@@ -159,51 +204,4 @@ object ProxySuspiciousConnectsAnalysis {
       .filter(corruptProxyRecordsFilter)
       .select(OutSchema: _*)
   }
-
-  val DefaultUserAgent = "-"
-  val DefaultResponseContentType = "-"
-
-  val InSchema = StructType(
-    List(DateField,
-      TimeField,
-      ClientIPField,
-      HostField,
-      ReqMethodField,
-      UserAgentField,
-      ResponseContentTypeField,
-      DurationField,
-      UserNameField,
-      WebCatField,
-      RefererField,
-      RespCodeField,
-      URIPortField,
-      URIPathField,
-      URIQueryField,
-      ServerIPField,
-      SCBytesField,
-      CSBytesField,
-      FullURIField)).fieldNames.map(col)
-
-  val OutSchema = StructType(
-    List(DateField,
-      TimeField,
-      ClientIPField,
-      HostField,
-      ReqMethodField,
-      UserAgentField,
-      ResponseContentTypeField,
-      DurationField,
-      UserNameField,
-      WebCatField,
-      RefererField,
-      RespCodeField,
-      URIPortField,
-      URIPathField,
-      URIQueryField,
-      ServerIPField,
-      SCBytesField,
-      CSBytesField,
-      FullURIField,
-      WordField,
-      ScoreField)).fieldNames.map(col)
 }

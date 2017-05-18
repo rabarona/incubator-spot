@@ -18,8 +18,8 @@
 package org.apache.spot.netflow
 
 import org.apache.spark.sql.functions._
-import org.apache.spot.utilities.Quantiles
 import org.apache.spot.utilities.data.validation.InvalidDataHandler
+import org.apache.spot.utilities.transformation.Quantiles
 
 import scala.util.{Success, Try}
 
