@@ -39,11 +39,6 @@ import scala.collection.immutable.Map
 
 object SpotLDAWrapper {
 
-  case class SpotLDAInput(doc: String, word: String, count: Int) extends Serializable
-
-  case class SpotLDAOutput(docToTopicMix: DataFrame, wordResults: Map[String, Array[Double]])
-
-
   def runLDA(sparkContext: SparkContext,
              sqlContext: SQLContext,
              docWordCount: RDD[SpotLDAInput],
@@ -52,7 +47,7 @@ object SpotLDAWrapper {
              ldaSeed: Option[Long],
              ldaAlpha: Double,
              ldaBeta: Double,
-             ldaOptimizer: String,
+             ldaOptimizerOption: String,
              maxIterations: Int): SpotLDAOutput = {
 
     import sqlContext.implicits._
@@ -90,27 +85,27 @@ object SpotLDAWrapper {
     docWordCountCache.unpersist()
 
     //Instantiate optimizer based on input
-    val optimizer = ldaOptimizer match {
+    val ldaOptimizer = ldaOptimizerOption match {
       case "em" => new EMLDAOptimizer
       case "online" => new OnlineLDAOptimizer().setOptimizeDocConcentration(true).setMiniBatchFraction({
         if (corpusSize < 2) 0.75
         else (0.05 + 1) / corpusSize
       })
       case _ => throw new IllegalArgumentException(
-        s"Invalid LDA optimizer $ldaOptimizer")
+        s"Invalid LDA optimizer $ldaOptimizerOption")
     }
 
     logger.info(s"Running Spark LDA with params alpha = $ldaAlpha beta = $ldaBeta " +
-      s"Max iterations = $maxIterations Optimizer = em")
-    //Set LDA params from input args
+      s"Max iterations = $maxIterations Optimizer = $ldaOptimizerOption")
 
+    //Set LDA params from input args
     val lda =
       new LDA()
         .setK(topicCount)
         .setMaxIterations(maxIterations)
         .setAlpha(ldaAlpha)
         .setBeta(ldaBeta)
-        .setOptimizer(optimizer)
+        .setOptimizer(ldaOptimizer)
 
     // If caller does not provide seed to lda, ie. ldaSeed is empty, lda is seeded automatically set to hash value of class name
 
@@ -119,7 +114,7 @@ object SpotLDAWrapper {
     }
 
     val (wordTopicMat, docTopicDist) = ldaOptimizer match {
-      case "em" => {
+      case _: EMLDAOptimizer => {
          val ldaModel = lda.run(ldaCorpus).asInstanceOf[DistributedLDAModel]//.toLocal
 
         //Get word topic mix: columns = topic (in no guaranteed order), rows = words (# rows = vocab size)
@@ -132,7 +127,7 @@ object SpotLDAWrapper {
 
       }
 
-      case "online" => {
+      case _: OnlineLDAOptimizer => {
         val ldaModel = lda.run(ldaCorpus).asInstanceOf[LocalLDAModel]
 
         //Get word topic mix: columns = topic (in no guaranteed order), rows = words (# rows = vocab size)
@@ -145,8 +140,6 @@ object SpotLDAWrapper {
 
       }
 
-      case _ => throw new IllegalArgumentException(
-        s"Invalid LDA optimizer $ldaOptimizer")
     }
 
     //Create doc results from vector: convert docID back to string, convert vector of probabilities to array
@@ -229,5 +222,9 @@ object SpotLDAWrapper {
       .withColumn(TopicProbabilityMixArray, topicDistributionToArray(documentToTopicDistributionDF(TopicProbabilityMix)))
       .selectExpr(s"$DocumentName  AS $DocumentName", s"$TopicProbabilityMixArray AS $TopicProbabilityMix")
   }
+
+  case class SpotLDAInput(doc: String, word: String, count: Int) extends Serializable
+
+  case class SpotLDAOutput(docToTopicMix: DataFrame, wordResults: Map[String, Array[Double]])
 
 }
