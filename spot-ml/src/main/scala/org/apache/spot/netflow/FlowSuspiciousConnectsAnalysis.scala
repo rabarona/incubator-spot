@@ -122,7 +122,7 @@ object FlowSuspiciousConnectsAnalysis {
       FlowSuspiciousConnectsModel.trainNewModel(sparkContext, sqlContext, logger, config, data, config.topicCount)
 
     logger.info("Identifying outliers")
-    model.score(sparkContext, sqlContext, data, config.probabilityConversionOption)
+    model.score(sparkContext, sqlContext, data, config.precisionUtility)
   }
 
   /**

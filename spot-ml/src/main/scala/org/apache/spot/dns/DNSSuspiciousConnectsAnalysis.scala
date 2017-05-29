@@ -114,7 +114,7 @@ object DNSSuspiciousConnectsAnalysis {
       DNSSuspiciousConnectsModel.trainNewModel(sparkContext, sqlContext, logger, config, data, config.topicCount)
 
     logger.info("Identifying outliers")
-    model.score(sparkContext, sqlContext, data, config.userDomain, config.probabilityConversionOption)
+    model.score(sparkContext, sqlContext, data, config.userDomain, config.precisionUtility)
   }
 
   /**

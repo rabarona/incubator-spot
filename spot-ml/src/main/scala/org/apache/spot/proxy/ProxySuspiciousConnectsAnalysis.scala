@@ -136,7 +136,7 @@ object ProxySuspiciousConnectsAnalysis {
     val model = ProxySuspiciousConnectsModel.trainNewModel(sparkContext, sqlContext, logger, config, data)
     logger.info("Identifying outliers")
 
-    model.score(sparkContext, data, config.probabilityConversionOption)
+    model.score(sparkContext, data, config.precisionUtility)
   }
 
   /**

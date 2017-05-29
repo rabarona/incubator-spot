@@ -24,7 +24,7 @@ import org.apache.spark.sql.{Row, SQLContext}
 import org.apache.spot.SuspiciousConnectsArgumentParser.SuspiciousConnectsConfig
 import org.apache.spot.dns.DNSSchema._
 import org.apache.spot.testutils.TestingSparkContextFlatSpec
-import org.apache.spot.utilities.transformation.ProbabilityConverterFloat
+import org.apache.spot.utilities.transformation.PrecisionUtilityFloat
 import org.scalatest.Matchers
 
 
@@ -66,7 +66,7 @@ class DNSSuspiciousConnectsAnalysisTest extends TestingSparkContextFlatSpec with
     ldaMaxiterations = 20,
     ldaAlpha = 1.02,
     ldaBeta = 1.001,
-    probabilityConversionOption = ProbabilityConverterFloat)
+    precisionUtility = PrecisionUtilityFloat)
 
 
   "dns suspicious connects analysis" should "estimate correct probabilities in toy data with framelength anomaly" in {
