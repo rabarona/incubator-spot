@@ -21,7 +21,6 @@
 
 DSOURCE=$1
 RAWDATA_PATH=$2
-LDAOPTIMIZER="online"
 
 # read in variables (except for date) from etc/.conf file
 
@@ -71,7 +70,7 @@ time spark-submit --class "org.apache.spot.SuspiciousConnects" \
   --scored ${HDFS_SCORED_CONNECTS} \
   --threshold ${TOL} \
   --maxresults ${MAXRESULTS} \
-  --ldamaxiterations 11 \
+  --ldamaxiterations 20 \
   --ldaalpha ${LDA_ALPHA} \
   --ldabeta ${LDA_BETA} \
   --ldaoptimizer ${LDA_OPTIMIZER} \
