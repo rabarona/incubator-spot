@@ -23,7 +23,7 @@ import org.apache.spark.sql.{DataFrame, Row, SQLContext}
 import org.apache.spot.SuspiciousConnectsArgumentParser.SuspiciousConnectsConfig
 import org.apache.spot.netflow.FlowSchema._
 import org.apache.spot.testutils.TestingSparkContextFlatSpec
-import org.apache.spot.utilities.transformation.PrecisionUtilityFloat
+import org.apache.spot.utilities.FloatPointPrecisionUtility32
 import org.scalatest.Matchers
 
 case class FlowRecord(treceived: String,
@@ -74,7 +74,7 @@ class FlowSuspiciousConnectsAnalysisTest extends TestingSparkContextFlatSpec wit
     ldaMaxiterations = 20,
     ldaAlpha = 1.02,
     ldaBeta = 1.001,
-    precisionUtility = PrecisionUtilityFloat)
+    precisionUtility = FloatPointPrecisionUtility32)
 
   "netflow suspicious connects" should "correctly identify time-of-day anomalies" in {
 
