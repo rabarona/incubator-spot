@@ -22,8 +22,6 @@
 
 package org.apache.spot.testutils
 
-import java.util.concurrent.locks.ReentrantLock
-
 import org.apache.spark.sql.SparkSession
 
 /**
@@ -37,9 +35,6 @@ import org.apache.spark.sql.SparkSession
   * You can't have more than one local SparkContext running at the same time.
   */
 private[testutils] object TestingSparkContext {
-
-  /** lock allows non-Spark tests to still run concurrently */
-  private val lock = new ReentrantLock()
 
   /** global SparkSession that can be re-used between tests */
   private lazy val sparkSession: SparkSession = createLocalSparkSession()
@@ -57,7 +52,6 @@ private[testutils] object TestingSparkContext {
     }
     else {
       // create a new SparkSession each time
-      lock.lock()
       createLocalSparkSession()
     }
   }
@@ -93,7 +87,6 @@ private[testutils] object TestingSparkContext {
     finally {
       // To avoid Akka rebinding to the same port, since it doesn't unbind immediately on shutdown
       System.clearProperty("spark.driver.port")
-      lock.unlock()
     }
   }
 
